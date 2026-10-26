@@ -1,6 +1,5 @@
 "use client";
 
-import { getAirline } from "@/data/airlines";
 import { getDictionary } from "@/i18n";
 import { formatCurrency } from "@/lib/currency";
 import {
@@ -11,6 +10,7 @@ import {
 } from "@/lib/dates";
 import type { FlightLeg, FlightOfferWithAge } from "@/lib/providers/types";
 import { ExternalIcon, PlaneIcon } from "@/components/ui/icons";
+import { AirlineLogo } from "@/components/results/airline-logo";
 import { useCurrency } from "@/components/providers/currency-provider";
 
 type FlightCardProps = {
@@ -22,7 +22,6 @@ type FlightCardProps = {
 export function FlightCard({ offer, isCheapest, isRecommended }: FlightCardProps) {
   const t = getDictionary();
   const { currency, format } = useCurrency();
-  const airline = getAirline(offer.airlineCode);
   const original =
     currency === offer.price.currency
       ? null
@@ -37,14 +36,11 @@ export function FlightCard({ offer, isCheapest, isRecommended }: FlightCardProps
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
-            <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-[11px] font-bold text-brand">
-              {offer.airlineCode}
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface"
-                style={{ backgroundColor: airline.color }}
-              />
-            </span>
+            <AirlineLogo
+              code={offer.airlineCode}
+              name={offer.airlineName}
+              useRemote={offer.provider !== "mock"}
+            />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">{offer.airlineName}</p>
               <p className="text-[11px] text-muted">{offer.airlineCode}</p>
@@ -114,7 +110,7 @@ function LegRow({ leg }: { leg: FlightLeg }) {
   const t = getDictionary();
   const first = leg.segments[0];
   const last = leg.segments[leg.segments.length - 1];
-  const stops = leg.segments.length - 1;
+  const stops = leg.stops ?? leg.segments.length - 1;
 
   return (
     <div className="flex items-start gap-3">

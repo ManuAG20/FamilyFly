@@ -23,6 +23,7 @@ export type FlightSegment = {
 export type FlightLeg = {
   direction: "outbound" | "return";
   durationMinutes: number;
+  stops?: number;
   segments: FlightSegment[];
 };
 

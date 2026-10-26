@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# cache local de precios
+/.data/
+
 # next.js
 /.next/
 /out/
@@ -33,6 +36,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+
+# documentos locales (especificación y credenciales)
+/lee.txt
+/lee2.txt
 
 # vercel
 .vercel

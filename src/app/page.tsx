@@ -1,9 +1,12 @@
 import { getDictionary } from "@/i18n";
+import { getConfiguredProviderId } from "@/lib/providers";
 import { SearchForm } from "@/components/search/search-form";
 import { BellIcon, CalendarIcon, PlaneIcon, ShieldIcon } from "@/components/ui/icons";
 
 export default function Home() {
   const t = getDictionary();
+  const notice =
+    getConfiguredProviderId() === "mock" ? t.home.demoNotice : t.home.liveNotice;
   const features = [
     {
       icon: CalendarIcon,
@@ -58,7 +61,7 @@ export default function Home() {
               {t.home.onlyConsult}
             </span>
             <span className="hidden h-1 w-1 rounded-full bg-border sm:block" />
-            <span className="max-w-md text-pretty text-[11px] sm:text-xs">{t.home.demoNotice}</span>
+            <span className="max-w-md text-pretty text-[11px] sm:text-xs">{notice}</span>
           </div>
         </div>
       </section>

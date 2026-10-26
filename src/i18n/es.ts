@@ -31,7 +31,9 @@ export const es = {
       "Compara precios, fechas flexibles y escalas en un solo lugar. Guarda rutas y recibe avisos cuando baje el precio.",
     onlyConsult: "Solo consulta: sin compra, pagos ni reservas.",
     demoNotice:
-      "Fase 1 en modo demo: los resultados son simulados por MockProvider y no son precios reales.",
+      "Modo demo: los resultados son simulados por MockProvider y no son precios reales.",
+    liveNotice:
+      "Datos de Travelpayouts: los precios provienen de su caché y muestran cuándo se vieron por última vez.",
     quickRoutes: "Rutas rápidas",
     features: {
       cacheTitle: "Precios con antigüedad visible",
@@ -122,8 +124,18 @@ export const es = {
     invalidSearchTitle: "Búsqueda incompleta",
     invalidSearchText: "Vuelve al buscador y revisa el origen, el destino y las fechas.",
     demoBanner: "Modo demo",
-    demoBannerText:
-      "Estos resultados son simulados. En la Fase 2 se conectarán con Travelpayouts.",
+    demoBannerText: "Estos resultados son simulados y no representan disponibilidad real.",
+    cacheBanner: "Precios de caché",
+    cacheBannerText:
+      "Travelpayouts devuelve precios vistos recientemente. Cada oferta indica su antigüedad; confirma siempre el precio final en el proveedor.",
+    providerErrors: {
+      config: "El proveedor de vuelos no está configurado. Revisa las variables de entorno.",
+      auth: "El proveedor rechazó las credenciales configuradas.",
+      rateLimit: "Se alcanzó el límite de consultas. Espera un minuto y vuelve a intentarlo.",
+      timeout: "El proveedor tardó demasiado en responder. Inténtalo de nuevo.",
+      upstream: "El proveedor de vuelos no está disponible en este momento.",
+      invalidResponse: "El proveedor devolvió una respuesta no válida.",
+    },
     exchangeRate: "Tipo de cambio",
     approx: "aprox.",
     passengersLabel: "Pasajeros",

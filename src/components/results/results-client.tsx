@@ -216,7 +216,12 @@ export function ResultsClient({ query }: { query: FlightSearchQuery }) {
           <span className="font-semibold">{t.results.demoBanner}:</span>{" "}
           {t.results.demoBannerText}
         </div>
-      ) : null}
+      ) : (
+        <div className="mb-4 rounded-xl border border-brand/20 bg-brand-soft/40 px-3 py-2 text-[11px] leading-relaxed text-muted">
+          <span className="font-semibold text-brand">{t.results.cacheBanner}:</span>{" "}
+          {t.results.cacheBannerText}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>

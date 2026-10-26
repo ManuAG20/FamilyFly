@@ -2,16 +2,17 @@
 
 Web personal para buscar y comparar vuelos desde Perú y Madrid, con precios en USD o EUR, y base preparada para alertas de precio bajo por Telegram en fases posteriores.
 
-> **Estado actual: Fase 1.** La app funciona sin claves ni red externa usando `MockProvider`. Las ofertas son simuladas y no representan disponibilidad real. No hay pagos, reservas ni scraping.
+> **Estado actual: Fase 2.** La app usa `MockProvider` por defecto y puede activar `TravelpayoutsProvider` con `FLIGHT_PROVIDER=travelpayouts`. Los precios reales vienen de la caché de Travelpayouts y muestran su antigüedad. No hay pagos, reservas ni scraping. `IgnavProvider` queda pendiente de clave y validación.
 
 ## Estado por fases
 
 | Fase | Alcance | Estado |
 | --- | --- | --- |
 | 1 | Búsqueda, resultados, moneda, tema e i18n con datos mock | Completada |
-| 2 | Proveedores reales (`Travelpayouts`, `Ignav`), caché y comparación | Pendiente |
+| 2 | Travelpayouts real, caché SQLite, límites y enlaces de respaldo | Completada |
+| 2b | `IgnavProvider` opcional | Pendiente de clave |
 | 3 | Supabase, historial de precios y watchlist | Pendiente |
-| 4 | Alertas Telegram, GitHub Actions y despliegue en Vercel | Pendiente |
+| 4 | Alertas Telegram, GitHub Actions y despliegue | Pendiente |
 
 ## Funcionalidad de la Fase 1
 
@@ -25,6 +26,17 @@ Web personal para buscar y comparar vuelos desde Perú y Madrid, con precios en 
 - Tema claro/oscuro y aviso de antigüedad de los datos.
 - Interfaz en español con textos centralizados para añadir inglés después.
 
+## Funcionalidad de la Fase 2
+
+- `TravelpayoutsProvider` real con `prices_for_dates`, `grouped_prices`, `city-directions` y `prices/latest` como respaldo.
+- Caché persistente en SQLite con TTL configurable y uso de datos antiguos si el proveedor falla.
+- Límite local de peticiones por minuto, timeout, reintento ante 429/5xx y errores diferenciados.
+- Enlace principal a Aviasales y enlace de respaldo a Google Flights en cada oferta.
+- Logos de aerolínea con fallback al código IATA si la imagen no carga.
+- Horas locales de cada aeropuerto, sin convertir por error a UTC.
+- Búsqueda de "cualquier destino" desde Madrid con precios del día y filtrado de destinos conocidos fuera de Europa.
+- Aviso visible de que los precios de Travelpayouts son de caché.
+
 ## Stack
 
 - Next.js 16.4.3 (App Router, Server Components, `cacheComponents`)
@@ -35,7 +47,7 @@ Web personal para buscar y comparar vuelos desde Perú y Madrid, con precios en 
 
 ## Requisitos
 
-- Node.js 22 o superior
+- Node.js 22.5 o superior (`node:sqlite`)
 - npm 10 o superior
 
 ## Puesta en marcha
@@ -71,10 +83,15 @@ Copia `.env.example` a `.env.local`. Las variables `NEXT_PUBLIC_*` son públicas
 
 | Variable | Fase | Uso | Dónde obtenerla |
 | --- | --- | --- | --- |
-| `FLIGHT_PROVIDER` | 1 | `mock`, `travelpayouts` o `ignav` | Se define a mano |
-| `FLIGHT_CACHE_TTL_HOURS` | 2 | Horas de caché de proveedores reales | Se define a mano |
+| `FLIGHT_PROVIDER` | 1 | `mock` o `travelpayouts`; `ignav` aún no está disponible | Se define a mano |
+| `FLIGHT_CACHE_TTL_HOURS` | 2 | Horas de caché de proveedores reales; `0` la desactiva | Se define a mano |
+| `FLIGHT_CACHE_STALE_HOURS` | 2 | Horas máximas para servir caché antigua si el proveedor falla | Se define a mano |
+| `FLIGHT_CACHE_BACKEND` | 2 | `sqlite` (por defecto) o `memory` | Se define a mano |
+| `FLIGHT_CACHE_PATH` | 2 | Ruta opcional del archivo SQLite | Se define a mano |
+| `TRAVELPAYOUTS_RATE_LIMIT_PER_MINUTE` | 2 | Límite local de peticiones a Travelpayouts | Se define a mano |
+| `FLIGHT_PROVIDER_TIMEOUT_MS` | 2 | Timeout por petición al proveedor | Se define a mano |
 | `TRAVELPAYOUTS_TOKEN` | 2 | Token de la API de vuelos | Panel de Travelpayouts |
-| `IGNAV_API_KEY` | 2 | Clave de la API de Ignav | Panel de Ignav |
+| `IGNAV_API_KEY` | 2b | Clave de la API de Ignav | Panel de Ignav |
 | `NEXT_PUBLIC_SUPABASE_URL` | 3 | URL del proyecto Supabase | Supabase, ajustes del proyecto |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 3 | Clave anónima sujeta a RLS | Supabase, API keys |
 | `SUPABASE_SERVICE_ROLE_KEY` | 3 | Escrituras del job; solo servidor | Supabase, API keys |
@@ -91,7 +108,7 @@ El tipo de cambio usa la API pública de Frankfurter y no necesita clave. Si fal
 
 **Travelpayouts (Fase 2).** Crea una cuenta en [travelpayouts.com](https://www.travelpayouts.com/), únete al programa de Aviasales y abre la sección de herramientas o API para copiar el token. La aprobación del programa puede tardar. Guarda el token como `TRAVELPAYOUTS_TOKEN`; solo se usa en el servidor.
 
-**Ignav (Fase 2, opcional).** Crea una cuenta en [ignav.com](https://ignav.com/) y copia la clave de API del panel. Solo se activa con `FLIGHT_PROVIDER=ignav`; si no tienes clave, deja el mock.
+**Ignav (Fase 2b, opcional).** El proveedor aún no está implementado. Si más adelante se añade, se activará con `FLIGHT_PROVIDER=ignav` y `IGNAV_API_KEY`; mientras tanto el selector lo rechaza con un error claro.
 
 **Supabase (Fase 3).** Crea un proyecto en [supabase.com](https://supabase.com/), entra en *Project Settings > API* y copia:
 - `Project URL` a `NEXT_PUBLIC_SUPABASE_URL`.
@@ -113,7 +130,7 @@ El tipo de cambio usa la API pública de Frankfurter y no necesita clave. Si fal
 
 Guárdala igual en Vercel y en GitHub Actions. El endpoint de alertas debe rechazar peticiones sin el header correcto.
 
-**Resend (Fase 4, opcional).** Crea una API key en [resend.com](https://resend.com/) y guárdala en `RESEND_API_KEY`. El email no se implementa en la Fase 1.
+**Resend (Fase 4, opcional).** Crea una API key en [resend.com](https://resend.com/) y guárdala en `RESEND_API_KEY`. El email se implementará en la Fase 4.
 
 **Frankfurter.** No requiere clave ni registro.
 
@@ -146,7 +163,8 @@ src/
     airlines.ts                    34 aerolíneas
   i18n/                            Diccionario español y helper de traducción
   lib/
-    providers/                     Interfaz, mock y selección de proveedor
+    cache/flight-cache.ts          Caché SQLite con TTL, stale y fallback a memoria
+    providers/                     Interfaz, mock, Travelpayouts y selección
     services/flights.ts            Orquestación, flexibilidad y antigüedad
     dates.ts, currency.ts, airports.ts, search-params.ts
 ```
@@ -156,8 +174,10 @@ src/
 1. El formulario valida y navega a `/results` con query params ISO.
 2. `src/lib/search-params.ts` valida y normaliza la entrada en el servidor.
 3. `/api/flights/search` consulta el proveedor configurado y devuelve ofertas en USD.
-4. El cliente ordena, filtra y convierte a EUR con el tipo de cambio cacheado.
-5. Los enlaces de reserva son enlaces de búsqueda a Google Flights; no hay compra integrada.
+4. Travelpayouts consulta primero la caché SQLite; si la entrada es reciente, no gasta cuota.
+5. Si el proveedor falla y hay una entrada dentro de `FLIGHT_CACHE_STALE_HOURS`, se sirve marcada como antigua.
+6. El cliente ordena, filtra y convierte a EUR con el tipo de cambio cacheado.
+7. El enlace principal abre Aviasales y el de respaldo Google Flights; no hay compra integrada.
 
 ### Proveedores
 
@@ -175,9 +195,11 @@ interface FlightProvider {
 ```
 
 - `MockProvider` es el valor por defecto y genera datos deterministas sin red.
-- En la Fase 2 se añadirán `TravelpayoutsProvider` e `IgnavProvider` en archivos separados.
+- `TravelpayoutsProvider` usa la caché de Aviasales, limita peticiones y sirve enlaces de reserva reales.
+- `IgnavProvider` sigue pendiente; `FLIGHT_PROVIDER=ignav` falla con un mensaje explícito.
 - La selección se hace en `src/lib/providers/index.ts` con `FLIGHT_PROVIDER`.
 - Un proveedor nuevo no debe cambiar componentes ni claves públicas.
+- Los errores comunes se normalizan en `src/lib/providers/errors.ts` y el route handler los traduce a HTTP.
 
 ## Datos, fechas y moneda
 
@@ -186,6 +208,8 @@ interface FlightProvider {
 - Las búsquedas flexibles usan ±3 días y mantienen la misma duración de estancia.
 - El mock usa un PRNG con semilla por ruta y fecha: la misma búsqueda devuelve los mismos precios.
 - La antigüedad de los datos se calcula en el servidor (`dataAgeHours`).
+- La caché local vive en `.data/flight-cache.sqlite` y está ignorada por Git.
+- En Vercel el archivo SQLite sería efímero; la caché durable llegará con Supabase en la Fase 3.
 
 ## Tests
 
@@ -198,9 +222,12 @@ Cubren:
 - Fechas, ventanas flexibles y formatos en español.
 - Validación y serialización de query params.
 - `MockProvider`: ida y vuelta, escalas, cualquier destino, calendario y determinismo.
+- `TravelpayoutsProvider`: mapeo, deduplicación, filtros, calendario, destinos baratos y fallback.
+- Caché: TTL, stale, claves estables, fallback a memoria y backend SQLite.
+- Rate limiter: ventana deslizante, espera y rechazo al superar el máximo.
 - Servicio de búsqueda: ventana flexible, offset de vuelta y orden por precio.
 
-Los tests no necesitan red ni claves.
+Los tests no necesitan red ni claves; usan `fetch` simulado y caché en memoria.
 
 ## Despliegue
 
@@ -208,7 +235,8 @@ Los tests no necesitan red ni claves.
 
 1. Importa el repositorio en Vercel.
 2. Añade las variables de entorno de la fase correspondiente.
-3. Despliega. La Fase 1 no necesita ninguna clave.
+3. Despliega. Con `FLIGHT_PROVIDER=mock` no hace falta ninguna clave.
+4. Para usar Travelpayouts, define `TRAVELPAYOUTS_TOKEN` y asume que la caché local no persiste entre instancias.
 
 ### GitHub Actions
 
@@ -225,10 +253,11 @@ En la Fase 4, el job de alertas usará secretos del repositorio equivalentes a l
 ## Roadmap
 
 - [x] Fase 1: estructura, mock, búsqueda, resultados, moneda, tema e i18n.
-- [ ] Fase 2: proveedores reales, caché, comparación y enlaces afiliados.
+- [x] Fase 2: Travelpayouts real, caché SQLite, límites y enlaces de respaldo.
+- [ ] Fase 2b: `IgnavProvider` opcional, pendiente de clave y validación real.
 - [ ] Fase 3: Supabase, historial de precios y watchlist.
 - [ ] Fase 4: alertas Telegram, GitHub Actions y despliegue.
 
 ## Aviso
 
-FamilyFly es un proyecto personal. En la Fase 1 todos los vuelos, precios y aerolíneas son simulados. No uses estos datos para tomar decisiones de compra.
+FamilyFly es un proyecto personal. Con `MockProvider` todos los vuelos, precios y aerolíneas son simulados. Con `TravelpayoutsProvider` los precios proceden de su caché y pueden estar desactualizados o no corresponder a una tarifa reservable en ese momento. No uses estos datos para tomar decisiones de compra.

@@ -56,6 +56,9 @@ export function formatDateTime(iso: string): string {
 }
 
 export function formatTime(iso: string): string {
+  const localTime = iso.match(/T(\d{2}:\d{2})/)?.[1];
+  if (localTime) return localTime;
+
   const date = new Date(iso);
   return new Intl.DateTimeFormat("es-ES", {
     hour: "2-digit",
