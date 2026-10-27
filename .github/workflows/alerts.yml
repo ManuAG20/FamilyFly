@@ -1,0 +1,17 @@
+name: Flight Alerts
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger alerts
+        run: |
+          curl -X GET "/api/alerts/run" -H "x-cron-secret: " -f
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
