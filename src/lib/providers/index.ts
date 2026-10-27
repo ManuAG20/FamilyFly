@@ -1,9 +1,11 @@
+import { IgnavProvider } from "@/lib/providers/ignav";
 import { MockProvider } from "@/lib/providers/mock";
 import { TravelpayoutsProvider } from "@/lib/providers/travelpayouts";
 import type { FlightProvider, FlightProviderId } from "@/lib/providers/types";
 
 let mockProvider: MockProvider | undefined;
 let travelpayoutsProvider: TravelpayoutsProvider | undefined;
+let ignavProvider: IgnavProvider | undefined;
 
 export function getConfiguredProviderId(): FlightProviderId {
   const configured = process.env.FLIGHT_PROVIDER?.toLowerCase();
@@ -28,7 +30,12 @@ export function getFlightProvider(): FlightProvider {
     return travelpayoutsProvider;
   }
 
+  if (providerId === "ignav") {
+    ignavProvider ??= new IgnavProvider();
+    return ignavProvider;
+  }
+
   throw new Error(
-    'El proveedor "ignav" todavía no está disponible. Usa FLIGHT_PROVIDER=travelpayouts o mock.',
+    'Proveedor de vuelos no configurado correctamente. Usa FLIGHT_PROVIDER=mock, travelpayouts o ignav.',
   );
 }
